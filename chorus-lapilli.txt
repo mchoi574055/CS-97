@@ -1,0 +1,178 @@
+When starting, I figured that I needed a way to distinguish a way between
+the initial 6 moves and the moves after:
+
+ if (this.state.squareMark < 6) 
+
+-This overhead over the start of the handleClick code allowed me to control
+when to use code for the 6 later moves
+
+class Game extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      history: [
+        {
+          squares: Array(9).fill(null)
+        }
+      ],
+      stepNumber: 0,
+      xIsNext: true,
+      squareMark: 0,
+      validMove: false,
+      prevSquare: null,
+    };
+  }
+
+-realized I needed to add more varibles to keep track of when moving a
+square is appropriate, legal, or necessary
+-the validMove records when it is appropriate to move the piece and if
+the timing is correct
+-prevSquare records the previous square to be deleted once starting
+to calculate moving an exisitng square
+
+      if (squares[i] === currentSquare) {
+        this.setState({
+          validMove: true,
+          prevSquare: i
+        });
+      }
+-adding this code as an exception to the previous overhead allows the 
+preparation of moving a piece. validMove is now true, the square in question
+to be moved is also recorded in the class data
+
+-added a move(prev, newSquare) function the organize the actual movement of the
+square
+
+In this, we have    
+ const history = this.state.history.slice(0, this.state.stepNumber + 1);
+ const current = history[history.length - 1];
+ const squares = current.squares.slice();
+
+-previous data in order to record relavant board information
+
+In that function, we call
+
+function isValid(oldMove, newMove) {
+  const lines = [
+    [0, 1, 3, 4],
+    [1, 0, 2, 3, 4, 5],
+    [2, 1, 4, 5],
+    [3, 0, 6, 1, 4, 7],
+    [4, 0, 1, 2, 3, 5, 6, 7, 8],
+    [5, 2, 8, 1, 4, 7],
+    [6, 3, 4, 7],
+    [7, 6, 8, 3, 4, 5],
+    [8, 4, 7, 5]
+  ];
+  for (let i = 0; i < lines.length; i++) {
+    const currLine = lines[i];
+
+    if (currLine[0] === oldMove) {
+      const currlength = currLine.length;
+      for (let j = 1; j < currlength; j++) {
+        if (newMove === currLine[j])
+          return true;
+      }
+    }
+  }
+  return false;
+}
+
+-this function determines whether it is possible to move a piece in 
+vertical, horizontal, and diagonal spaces by listing all the possible 
+permutations possible for the movement to occur and checking that it is 
+legal
+
+ if (squares[4] === currentSquare) {
+      const copy = current.squares.slice();
+      if (copy[newSquare] ==  null) {
+        copy[prev] = null;
+        copy[newSquare] = currentSquare;
+        if (calculateWinner(copy)) {
+          this.setState({
+            history: history.concat([
+              {
+                squares: copy
+              }
+            ]),
+            stepNumber: history.length
+          });
+          return;
+        }
+
+- I realized I needed a way to determine whether the center square was filled
+and if a piece needed to move because it was. currentSquare holds the current
+square type to move and compares it with the center piece in the middle.
+If the piece is indeed in the middle and needs to be moved, a copy of the square
+is produced, where the middle block is null then moved to copy[newSquare]
+- The winner is also calculated midway to determine if the functino should return
+stepNumber is updated every other turn because one click is used to know which 
+block to move
+
+        else {
+          if (prev !== 4) {
+            this.setState({
+              validMove: false
+            });
+            return;
+
+- this else statement covers the rest of the scenarios if the center piece
+was not pressed, meaning the move is invalid and thus return to once again ask for 
+another key
+
+ squares[prev] = null;
+    squares[newSquare] = this.state.xIsNext ? "X" : "O";
+    
+    this.setState({
+    history: history.concat([
+      {
+        squares: squares
+      }
+     ]),
+       stepNumber: history.length,
+       xIsNext: !this.state.xIsNext,
+       validMove: false
+     });
+    }
+    else {
+      this.setState({
+        validMove: false
+      });
+      return;
+    }
+  }
+
+-If the center square is not occupied, that means there is more freedom of movement.
+This code fragment sets the previous square to null, making it empty, then
+changing the new square to be moved appropriately
+-The board state is also updated with squares:squares, stepNumber iterated and then
+turn alternated by xIsNext, where validMove is now false because the move has been
+consumed
+
+-The else statement is similar to the other one in that if no apporpriate move is 
+available, then return and set the move as false
+
+    if (this.state.validMove) {
+      return (
+        <div className="game">
+          <div className="game-board">
+            <Board
+              squares={current.squares}
+              onClick={i => this.move(this.state.prevSquare, i)}
+            />
+          </div>
+          <div className="game-info">
+            <div>{status}</div>
+            <ol>{moves}</ol>
+          </div>
+        </div>
+      );
+    }
+
+-This move in the game render is necessary to update the position of the board
+as well as making sure that the game makes the move at the right time. After validMove
+is found to be true, the click is then registered into the move function
+
+-Final thought: changing history was not that hard because it doesn't take account into
+the amount of moves used or the pieces on the board, only the clicks registered in chronological
+order so that it was easy to adapt
